@@ -7,7 +7,6 @@ import math
 from sklearn.cluster import KMeans
 from sklearn.decomposition import PCA
 from sklearn.linear_model import LogisticRegression
-from sklearn.metrics import accuracy_score, classification_report
 import matplotlib.pyplot as plt
 
 
@@ -345,7 +344,7 @@ class MLP:
         for p in self.parameters():
             p.grad = 0
             
-    def fit(self, Xmat_train, Y_train, Xmat_val=None, Y_val=None, max_epochs=100, batch_size= 1000, verbose=False):
+    def fit(self, Xmat_train, Y_train, Xmat_val=None, Y_val=None, max_epochs=100, batch_size= 500, verbose=False):
         """
         Fit parameters of the neural network to given data using batched SGD.
         Update weights after computing average loss for each batch
@@ -490,10 +489,10 @@ def analyze_data():
     Y_test = (kmeans.predict(Xmat_test) == 2).astype(int)
 
     # Logistic Regression
-    #log_reg = LogisticRegression(random_state=42)
-    #log_reg.fit(Xmat_train, Y_train)
-    #test_preds = log_reg.predict(Xmat_test)
-    #print("Test Accuracy:", accuracy_score(Y_test, test_preds))
+    log_reg = LogisticRegression(random_state=42)
+    log_reg.fit(Xmat_train, Y_train)
+    test_preds = log_reg.predict(Xmat_test)
+    print("Test Accuracy:", accuracy(Y_test, test_preds))
 
     # Neural Network
     n, d = Xmat_train.shape
