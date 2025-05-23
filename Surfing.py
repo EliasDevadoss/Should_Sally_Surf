@@ -214,6 +214,35 @@ def elbow_method(X, max_k=10):
     plt.grid(True)
     plt.show()
 
+def cluster_centers():
+    # Cluster data
+    columns = ["Cluster", "MM", "DD", "hh", "mm", "WVHT", "DPD", "APD", "MWD", "WTMP"]
+    data = [
+        [1, 2.347203, 0.921098, 14.480022, 7.663291, 259.230920, 15.501489],
+        [2, 6.183879, 1.034960, 7.703525, 5.950794, 275.113372, 18.503688],
+        [3, 7.702992, 0.749206, 15.251048, 6.679906, 239.966435, 20.394126],
+        [4, 11.344486, 0.848286, 13.782287, 8.000581, 261.649085, 16.389625]
+    ]
+
+    columns = ["Cluster", "MM", "WVHT", "DPD", "APD", "MWD", "WTMP"]
+
+    # Format the data: first column as int, rest as floats with 3 decimal places
+    formatted_data = [
+        [f"{int(row[0])}"] + [f"{val:.3f}" for val in row[1:]]
+        for row in data
+    ]
+
+    # Plot table
+    fig, ax = plt.subplots(figsize=(12, 2))
+    ax.axis('off')
+    table = ax.table(cellText=formatted_data, colLabels=columns, loc='center', cellLoc='center')
+    table.auto_set_font_size(False)
+    table.set_fontsize(10)
+    table.scale(0.5, 1.2)
+    plt.title("Cluster Centroids Data", fontsize=14)
+    plt.tight_layout()
+    plt.show()
+
 def dim_reduction(X, kmeans):
     pca = PCA(n_components=2)
     X_reduced = pca.fit_transform(X)
@@ -354,9 +383,8 @@ class MLP:
         """
         
         # to allow for early stopping
-        if verbose:
-            static_epochs = 0
-            best_acc = 0
+        static_epochs = 0
+        best_acc = 0
 
         samples = len(Xmat_train)
 
@@ -387,7 +415,7 @@ class MLP:
 
                     # clip data to prevent log(<=0)
                     epsilon = 1e-6
-                    pY1.data = max(min(pY1.data, 1.0 - epsilon), epsilon)
+                    pY1.data = np.clip(pY1.data, epsilon, 1.0 - epsilon)
 
                     loss = negative_loglikelihood(y, pY1)
                     if batch_loss is None:
@@ -401,31 +429,32 @@ class MLP:
                 for p in self.parameters():
                     p.data -= self.learning_rate * p.grad
 
-            # use the verbose flag with True when debugging your outputs
-            if verbose:
-                self.train_mode = False
-                train_acc = accuracy(Y_train, self.predict(Xmat_train))
-                
-                if Xmat_val is not None:
-                    val_acc = accuracy(Y_val, self.predict(Xmat_val))
+            # test for early stopping
+            self.train_mode = False
+            train_acc = accuracy(Y_train, self.predict(Xmat_train))
+            
+            if Xmat_val is not None:
+                val_acc = accuracy(Y_val, self.predict(Xmat_val))
+                if verbose:
                     print(f"Epoch {e}: Training accuracy {train_acc:.0f}%, Validation accuracy {val_acc:.0f}%")
-                    
-                    # early stopping
-                    if val_acc > best_acc:
-                        best_acc = val_acc
-                        static_epochs = 0
-                    else:
-                        static_epochs += 1
-
-                    # stop if no improvement
-                    if static_epochs >= 4:
-                        print(f"Early stopping at epoch {e}")
-                        break
+                
+                # early stopping
+                if val_acc > best_acc:
+                    best_acc = val_acc
+                    static_epochs = 0
                 else:
-                    print(f"Epoch {e}: Training accuracy {train_acc:.0f}%")
+                    static_epochs += 1
 
-                self.train_mode = True
+                # stop if no improvement
+                if static_epochs >= 4:
+                    if verbose:
+                        print(f"Early stopping at epoch {e}")
+                    break
+            elif verbose:
+                print(f"Epoch {e}: Training accuracy {train_acc:.0f}%")
 
+            self.train_mode = True
+        
         # at the end of training set train mode to be False
         self.train_mode = False
 
@@ -483,16 +512,19 @@ def analyze_data():
     #centroids = pd.DataFrame(original_centroids, columns=['MM', 'DD', 'hh', 'mm', 'WVHT', 'DPD', 'APD', 'MWD', 'WTMP'])
     #print(centroids)
 
+    # Table of data for cluster centroids
+    #cluster_centers()
+
     # Assign cluster labels to all splits, cluster #3 (2 with zero indexing) is good conditions
     Y_train = (kmeans.predict(Xmat_train) == 2).astype(int)
     Y_val = (kmeans.predict(Xmat_val) == 2).astype(int)
     Y_test = (kmeans.predict(Xmat_test) == 2).astype(int)
 
     # Logistic Regression
-    log_reg = LogisticRegression(random_state=42)
-    log_reg.fit(Xmat_train, Y_train)
-    test_preds = log_reg.predict(Xmat_test)
-    print("Test Accuracy:", accuracy(Y_test, test_preds))
+    #log_reg = LogisticRegression(random_state=42)
+    #log_reg.fit(Xmat_train, Y_train)
+    #test_preds = log_reg.predict(Xmat_test)
+    #print("Test Accuracy:", accuracy(Y_test, test_preds))
 
     # Neural Network
     n, d = Xmat_train.shape
@@ -510,7 +542,7 @@ def analyze_data():
     for rate in learning_rates:
         for architect, layers in architectures.items():
             model = MLP(n_features=d, layer_sizes=layers, learning_rate=rate, dropout_proba=0.5)
-            model.fit(Xmat_train, Y_train, Xmat_val, Y_val, max_epochs=50, verbose=False)
+            model.fit(Xmat_train, Y_train, Xmat_val, Y_val, max_epochs=50, verbose=True)
             this_accuracy = accuracy(Y_val, model.predict(Xmat_val))
             print(f"Architecture: {architect}, learning rate: {rate}, accuracy:{this_accuracy}")
 
