@@ -431,11 +431,11 @@ class MLP:
 
             # test for early stopping
             self.train_mode = False
-            train_acc = accuracy(Y_train, self.predict(Xmat_train))
             
             if Xmat_val is not None:
                 val_acc = accuracy(Y_val, self.predict(Xmat_val))
                 if verbose:
+                    train_acc = accuracy(Y_train, self.predict(Xmat_train))
                     print(f"Epoch {e}: Training accuracy {train_acc:.0f}%, Validation accuracy {val_acc:.0f}%")
                 
                 # early stopping
@@ -446,11 +446,12 @@ class MLP:
                     static_epochs += 1
 
                 # stop if no improvement
-                if static_epochs >= 4:
+                if static_epochs >= 3:
                     if verbose:
                         print(f"Early stopping at epoch {e}")
                     break
             elif verbose:
+                train_acc = accuracy(Y_train, self.predict(Xmat_train))
                 print(f"Epoch {e}: Training accuracy {train_acc:.0f}%")
 
             self.train_mode = True
@@ -530,8 +531,9 @@ def analyze_data():
     n, d = Xmat_train.shape
 
     architectures = {
-        "5, 1": [5, 1],
-        "3, 3, 1": [3, 3, 1]
+        "15, 1": [15, 1],
+        "8, 8, 1": [8, 8, 1],
+        "4, 4, 4, 4, 1": [4, 4, 4, 4, 1]
     }
 
     learning_rates = [0.1, 0.01, 0.001]
