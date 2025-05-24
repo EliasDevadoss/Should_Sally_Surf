@@ -204,7 +204,7 @@ def elbow_method(X, max_k=10):
         kmeans.fit(X)
         inertias.append(kmeans.inertia_)
 
-    # Plot the elbow curve
+    # Plots elbow curve
     plt.figure(figsize=(8, 5))
     plt.plot(k_values, inertias, marker='o')
     plt.title("Elbow Method")
@@ -215,7 +215,7 @@ def elbow_method(X, max_k=10):
     plt.show()
 
 def cluster_centers():
-    # Cluster data
+    # Clusters data
     columns = ["Cluster", "MM", "DD", "hh", "mm", "WVHT", "DPD", "APD", "MWD", "WTMP"]
     data = [
         [1, 2.347203, 0.921098, 14.480022, 7.663291, 259.230920, 15.501489],
@@ -226,13 +226,13 @@ def cluster_centers():
 
     columns = ["Cluster", "MM", "WVHT", "DPD", "APD", "MWD", "WTMP"]
 
-    # Format the data: first column as int, rest as floats with 3 decimal places
+    # Formats the cluster number as in and rounds to 3 decimal places
     formatted_data = [
         [f"{int(row[0])}"] + [f"{val:.3f}" for val in row[1:]]
         for row in data
     ]
 
-    # Plot table
+    # Plots table
     fig, ax = plt.subplots(figsize=(12, 2))
     ax.axis('off')
     table = ax.table(cellText=formatted_data, colLabels=columns, loc='center', cellLoc='center')
@@ -249,8 +249,9 @@ def dim_reduction(X, kmeans):
 
     plt.figure(figsize=(8, 6))
     scatter = plt.scatter(X_reduced[:, 0], X_reduced[:, 1], c=kmeans.labels_, cmap='tab10', alpha=0.7)
-    legend = plt.legend(*scatter.legend_elements(), title="Clusters")
-    plt.gca().add_artist(legend)
+    handles, _ = scatter.legend_elements()
+    labels = [f"Cluster {i+1}" for i in range(len(handles))]
+    plt.legend(handles, labels, title="Clusters")
     plt.title("KMeans Visualization")
     plt.xlabel("PCA 1")
     plt.ylabel("PCA 2")
@@ -382,21 +383,21 @@ class MLP:
         Can optionally take in validation inputs as well to test generalization error.
         """
         
-        # to allow for early stopping
+        # To allow for early stopping
         static_epochs = 0
         best_acc = 0
 
         samples = len(Xmat_train)
 
-        # initialize all parameters randomly
+        # Initialize all parameters randomly
         for p in self.parameters():
             p.data = random.uniform(-1, 1)
             
-        # iterate over epochs
+        # Iterate over epochs
         for e in range(max_epochs):
             self.train_mode = True
 
-            # shuffle the data
+            # Shuffle the data
             indices = np.arange(samples)
             np.random.shuffle(indices)
 
@@ -413,7 +414,7 @@ class MLP:
                 for xvec, y in zip(X_batch, Y_batch):
                     pY1 = self(xvec)
 
-                    # clip data to prevent log(<=0)
+                    # Clip data to prevent log(<=0)
                     epsilon = 1e-6
                     pY1.data = np.clip(pY1.data, epsilon, 1.0 - epsilon)
 
@@ -429,34 +430,35 @@ class MLP:
                 for p in self.parameters():
                     p.data -= self.learning_rate * p.grad
 
-            # test for early stopping
+            # Test for early stopping
             self.train_mode = False
+            
+            if verbose:
+                train_acc = accuracy(Y_train, self.predict(Xmat_train))
             
             if Xmat_val is not None:
                 val_acc = accuracy(Y_val, self.predict(Xmat_val))
                 if verbose:
-                    train_acc = accuracy(Y_train, self.predict(Xmat_train))
                     print(f"Epoch {e}: Training accuracy {train_acc:.0f}%, Validation accuracy {val_acc:.0f}%")
                 
-                # early stopping
+                # Early stopping
                 if val_acc > best_acc:
                     best_acc = val_acc
                     static_epochs = 0
                 else:
                     static_epochs += 1
 
-                # stop if no improvement
+                # Stop if no improvement
                 if static_epochs >= 3:
                     if verbose:
                         print(f"Early stopping at epoch {e}")
                     break
             elif verbose:
-                train_acc = accuracy(Y_train, self.predict(Xmat_train))
                 print(f"Epoch {e}: Training accuracy {train_acc:.0f}%")
 
             self.train_mode = True
         
-        # at the end of training set train mode to be False
+        # At the end of training set train mode to be False
         self.train_mode = False
 
     def predict(self, Xmat):
@@ -530,27 +532,33 @@ def analyze_data():
     # Neural Network
     n, d = Xmat_train.shape
 
+    # Ablation study with 1% of data (change X and Y train in model.fit)
+    #sample_size = int(n * 0.01)
+    #subset_indices = np.random.choice(n, size=sample_size, replace=False)
+    #Xmat_train_small = Xmat_train[subset_indices]
+    #Y_train_small = Y_train[subset_indices]
+
     architectures = {
         "15, 1": [15, 1],
         "8, 8, 1": [8, 8, 1],
         "4, 4, 4, 4, 1": [4, 4, 4, 4, 1]
     }
 
-    #learning_rates = [0.1, 0.01, 0.001]
+    learning_rates = [0.1, 0.01]
 
     best_accuracy = 0
     best_model = None
 
-    #for rate in learning_rates:
-    for architect, layers in architectures.items():
-        model = MLP(n_features=d, layer_sizes=layers, learning_rate=0.01, dropout_proba=0.5)
-        model.fit(Xmat_train, Y_train, Xmat_val, Y_val, max_epochs=50, verbose=True)
-        this_accuracy = accuracy(Y_val, model.predict(Xmat_val))
-        print(f"Architecture: {architect}, learning rate: 0.01, accuracy:{this_accuracy}")
+    for rate in learning_rates:
+        for architect, layers in architectures.items():
+            model = MLP(n_features=d, layer_sizes=layers, learning_rate=rate, dropout_proba=0.5)
+            model.fit(Xmat_train, Y_train, Xmat_val, Y_val, max_epochs=50, verbose=True)
+            this_accuracy = accuracy(Y_val, model.predict(Xmat_val))
+            print(f"Architecture: {architect}, learning rate: {rate}, accuracy:{this_accuracy}")
 
-        if this_accuracy > best_accuracy:
-            best_accuracy = this_accuracy
-            best_model = model
+            if this_accuracy > best_accuracy:
+                best_accuracy = this_accuracy
+                best_model = model
 
     return best_model, Xmat_test, Y_test
 
@@ -563,8 +571,8 @@ def main():
     model, X_test, Y_test = analyze_data()
 
     # Test final model
-    #test_acc = accuracy(Y_test, model.predict(X_test))
-    #print(f"Test accuracy {test_acc:.0f}%")
+    test_acc = accuracy(Y_test, model.predict(X_test))
+    print(f"Test accuracy {test_acc:.0f}%")
 
 if __name__ == "__main__":
     main()
