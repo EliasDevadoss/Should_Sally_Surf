@@ -373,7 +373,7 @@ class MLP:
         for p in self.parameters():
             p.grad = 0
             
-    def fit(self, Xmat_train, Y_train, Xmat_val=None, Y_val=None, max_epochs=100, batch_size= 500, verbose=False):
+    def fit(self, Xmat_train, Y_train, Xmat_val=None, Y_val=None, max_epochs=100, batch_size= 256, verbose=False):
         """
         Fit parameters of the neural network to given data using batched SGD.
         Update weights after computing average loss for each batch
@@ -476,7 +476,7 @@ def analyze_data():
     data = pd.read_csv("meteorological_data.csv")
 
     # Drop unwanted columns
-    data_clean = data.drop(columns=["WDIR",	"WSPD", "GST", "PRES", "ATMP", "DEWP", "VIS", "TIDE"])
+    data_clean = data.drop(columns=["WDIR", "WSPD", "GST", "PRES", "ATMP", "DEWP", "VIS", "TIDE"])
     # Ensures wave height, dominant and average period, and wave direction and temperature are present
     data_clean = data_clean[(data_clean["WVHT"] != 99) & (data_clean["DPD"] != 99) & (data_clean["APD"] != 99) & (data_clean["MWD"] != 999) & (data_clean["WTMP"] != 999)]
 
@@ -536,21 +536,21 @@ def analyze_data():
         "4, 4, 4, 4, 1": [4, 4, 4, 4, 1]
     }
 
-    learning_rates = [0.1, 0.01, 0.001]
+    #learning_rates = [0.1, 0.01, 0.001]
 
     best_accuracy = 0
     best_model = None
 
-    for rate in learning_rates:
-        for architect, layers in architectures.items():
-            model = MLP(n_features=d, layer_sizes=layers, learning_rate=rate, dropout_proba=0.5)
-            model.fit(Xmat_train, Y_train, Xmat_val, Y_val, max_epochs=50, verbose=True)
-            this_accuracy = accuracy(Y_val, model.predict(Xmat_val))
-            print(f"Architecture: {architect}, learning rate: {rate}, accuracy:{this_accuracy}")
+    #for rate in learning_rates:
+    for architect, layers in architectures.items():
+        model = MLP(n_features=d, layer_sizes=layers, learning_rate=0.01, dropout_proba=0.5)
+        model.fit(Xmat_train, Y_train, Xmat_val, Y_val, max_epochs=50, verbose=True)
+        this_accuracy = accuracy(Y_val, model.predict(Xmat_val))
+        print(f"Architecture: {architect}, learning rate: 0.01, accuracy:{this_accuracy}")
 
-            if this_accuracy > best_accuracy:
-                best_accuracy = this_accuracy
-                best_model = model
+        if this_accuracy > best_accuracy:
+            best_accuracy = this_accuracy
+            best_model = model
 
     return best_model, Xmat_test, Y_test
 
